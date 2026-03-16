@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+
+<meta charset="UTF-8">
+<title>Database Mamalia Indonesia</title>
+
+<style>
+
+body{
+font-family:Arial;
+margin:20px;
+}
+
+.table-container{
+overflow-x:auto;
+}
+
+table{
+border-collapse:collapse;
+width:100%;
+min-width:800px;
+font-size:14px;
+}
+
+th,td{
+border:1px solid #ccc;
+padding:6px;
+text-align:left;
+}
+
+th{
+background:#eee;
+}
+
+.filter-box{
+margin-bottom:15px;
+}
+
+.pagination button{
+margin:2px;
+padding:4px 8px;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<h2>Database Mamalia Indonesia</h2>
+
+<div class="filter-box">
+
+Search:
+<input type="text" id="search">
+
+Famili:
+<select id="familiFilter">
+<option value="">Semua</option>
+</select>
+
+Status:
+<select id="statusFilter">
+<option value="">Semua</option>
+</select>
+
+Pulau:
+<select id="pulauFilter">
+<option value="">Semua</option>
+</select>
+
+</div>
+
+<div class="table-container">
+
+<table>
+
+<thead>
+
+<tr>
+<th>Famili</th>
+<th>Nama ilmiah</th>
+<th>Nama Inggris</th>
+<th>Nama Indonesia</th>
+<th>Sebaran</th>
+<th>Status</th>
+</tr>
+
+</thead>
+
+<tbody id="tabelMamalia"></tbody>
+
+</table>
+
+</div>
+
+<div id="pagination"></div>
+
+<script>
+
+const CSV_URL="https://docs.google.com/spreadsheets/d/19AzRjBrQ5phv3lX7FYtrCSMlWuR2AdhJOD0VUU84Szs/gviz/tq?tqx=out:csv";
+
+let data=[];
+let filtered=[];
+let currentPage=1;
+let perPage=50;
+
+fetch(CSV_URL)
+.then(res=>res.text())
+.then(text=>{
+
+let rows=text.split("\n").slice(1);
+
+rows.forEach(r=>{
+
+let c=r.split(",");
+
+c=c.map(x=>x.replace(/"/g,"").trim());
+
+data.push({
+
+famili:c[0],
+ilmiah:c[1],
+english:c[2],
+indo:c[3],
+sebaran:c[4],
+status:c[5]
+
+});
+
+});
+
+filtered=data;
+
+buatFilter();
+tampilkan();
+
+});
+
+function buatFilter(){
+
+let famili=[...new Set(data.map(d=>d.famili))];
+let status=[...new Set(data.map(d=>d.status))];
+
+let pulau=[];
+
+data.forEach(d=>{
+d.sebaran.split(",").forEach(p=>{
+pulau.push(p.trim());
+});
+});
+
+pulau=[...new Set(pulau)];
+
+famili.forEach(f=>{
+familiFilter.innerHTML+=`<option>${f}</option>`;
+});
+
+status.forEach(s=>{
+statusFilter.innerHTML+=`<option>${s}</option>`;
+});
+
+pulau.forEach(p=>{
+pulauFilter.innerHTML+=`<option>${p}</option>`;
+});
+
+}
+
+function tampilkan(){
+
+let start=(currentPage-1)*perPage;
+let pageData=filtered.slice(start,start+perPage);
+
+let html="";
+
+pageData.forEach(d=>{
+
+html+=`
+<tr>
+<td>${d.famili}</td>
+<td><i>${d.ilmiah}</i></td>
+<td>${d.english}</td>
+<td>${d.indo}</td>
+<td>${d.sebaran}</td>
+<td>${d.status}</td>
+</tr>
+`;
+
+});
+
+tabelMamalia.innerHTML=html;
+
+buatPagination();
+
+}
+
+function buatPagination(){
+
+let total=Math.ceil(filtered.length/perPage);
+
+let html="";
+
+for(let i=1;i<=total;i++){
+
+html+=`<button onclick="goPage(${i})">${i}</button>`;
+
+}
+
+pagination.innerHTML=html;
+
+}
+
+function goPage(p){
+
+currentPage=p;
+tampilkan();
+
+}
+
+search.oninput=filter;
+familiFilter.onchange=filter;
+statusFilter.onchange=filter;
+pulauFilter.onchange=filter;
+
+function filter(){
+
+let s=search.value.toLowerCase();
+let f=familiFilter.value;
+let st=statusFilter.value;
+let p=pulauFilter.value;
+
+filtered=data.filter(d=>{
+
+return(
+
+(d.ilmiah.toLowerCase().includes(s) ||
+d.english.toLowerCase().includes(s) ||
+d.indo.toLowerCase().includes(s))
+
+&& (!f || d.famili==f)
+
+&& (!st || d.status==st)
+
+&& (!p || d.sebaran.includes(p))
+
+);
+
+});
+
+currentPage=1;
+tampilkan();
+
+}
+
+</script>
+
+</body>
+</html>
